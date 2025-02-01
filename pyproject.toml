@@ -37,4 +37,11 @@ line-length = 120
 select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.mypy]
+ignore_missing_imports = true
 disable_error_code = ["call-arg", "import-untyped"]
+files = ["pytest_dbt_duckdb/*.py", "tests/*.py"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-p no:warnings"
+testpaths = ["tests"]
