@@ -1,0 +1,80 @@
+site_name: Pytest dbt Duckdb
+site_url: https://afranzi.github.io/pytest-dbt-duckdb/
+
+# Repository
+repo_name: afranzi/pytest-dbt-duckdb
+repo_url: https://github.com/afranzi/pytest-dbt-duckdb
+
+# Copyright
+copyright: Copyright &copy; 2025 - 2025 Albert Franzi
+
+theme:
+  name: material
+  favicon: images/favicon.png
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/kubernetes
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - toc.integrate
+    - search.highlight
+    - search.share
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/link
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
+  font:
+    text: Roboto
+    code: Roboto Mono
+extra_css:
+  - stylesheets/extra.css
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/medium
+      link: https://medium.com/albert-franzi
+      name: medium
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/albertfranzi/
+      name: linkedin
+
+plugins:
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - git-revision-date-localized:
+      enable_creation_date: true
+  - git-committers:
+      repository: afranzi/pytest-dbt-duckdb
+      branch: main
+      enabled: true
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
