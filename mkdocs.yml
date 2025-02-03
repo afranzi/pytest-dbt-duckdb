@@ -13,7 +13,7 @@ theme:
   favicon: images/favicon.png
   icon:
     repo: fontawesome/brands/github
-    logo: material/kubernetes
+    logo: simple/dbt
   features:
     - navigation.tabs
     - navigation.sections
@@ -74,7 +74,11 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+      - name: mermaid
+        class: mermaid
+        format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
