@@ -88,7 +88,6 @@ class DbtValidator:
 
         assert seed is not None or build is not None, "seed or build must be defined"
 
-        self.executor.execute(command="deps", params=[quiet_param])
         if seed:
             seeds_res = self.executor.execute(command="seed", params=["--select", seed, quiet_param])
             self.executor.validate_execution(seeds_res)
