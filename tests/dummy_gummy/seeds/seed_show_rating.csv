@@ -1,0 +1,12 @@
+rating_id,rating_name,only_adults,min_age
+TV-MA,Mature Audience Only,true,18
+TV-PG,Parental Guidance Recommended,true,15
+PG-13,Parental Guidance Recommended,true,13
+PG,Parental Guidance Recommended,true,15
+R,Restricted,true,18
+TV-Y,All Children,false,2
+TV-Y7,Directed to Older Children,false,7
+TV-G,General,false,7
+TV-14,Parents Strongly Cautioned,false,14
+TV-Y7-FV,Directed to Older Children with Fantasy Violence,false,7
+NR,Unrated,false,7

@@ -1,0 +1,11 @@
+actors,countries,director,first_show,last_show,movies,only_adult_shows,ratings,shows,tv_shows
+"[Aaron Eckhart, Alexander Fehling, David Bark-Jones, Eric Godon, Garrick Hagon, Jade Hassouné, Liana Liberato, Neil Napier, Nick Alachiotis, Olga Kurylenko, Yassine Fadel]","[Belgium, Canada, United Kingdom, United States]",Philipp Stölzl,2012,2012,1,1,"[R]",1,0
+"[Abigail Breslin, Amber Heard, Bill Murray, Derek Graf, Emma Stone, Jesse Eisenberg, Woody Harrelson]","[United States]",Ruben Fleischer,2009,2009,1,1,"[R]",1,0
+"[Adam Godley, AnnaSophia Robb, Christopher Lee, David Kelly, Deep Roy, Freddie Highmore, Helena Bonham Carter, James Fox, Johnny Depp, Jordan Fry, Julia Winter, Missi Pyle, Noah Taylor, Philip Wiegratz]","[United Kingdom, United States]",Tim Burton,2005,2005,1,1,"[PG]",1,0
+"[Adrian Pasdar, David Kaye, Dee Bradley Baker, Fred Tatasciore, Robin Atkin Downes]","[United States]","Leo Riley, Eric Radomski",2013,2013,1,1,"[PG]",1,0
+"[Ben Whishaw, Colin Firth, Dick Van Dyke, Emily Blunt, Emily Mortimer, Joel Dawson, Julie Walters, Lin-Manuel Miranda, Meryl Streep, Nathanael Saleh, Pixie Davies]","[United Kingdom, United States]",Rob Marshall,2018,2018,1,1,"[PG]",1,0
+"[Brian Thompson, David Thewlis, Dennis Quaid, Dina Meyer, Jason Isaacs, Julie Christie, Pete Postlethwaite, Sean Connery]","[United States]",Rob Cohen,1996,1996,1,1,"[PG-13]",1,0
+"[Chevy Chase, Courteney Cox, Kate Mara, Kevin Zegers, Michael Cassidy, Rip Torn, Ryan Newman, Spencer Breslin, Tim Allen]","[United States]",Peter Hewitt,2006,2006,1,1,"[PG]",1,0
+"[David Cross, Jack Kehler, Johnny Knoxville, Jon Gries, Lara Flynn Boyle, Linda Fiorentino, Mike Nussbaum, Patrick Warburton, Rip Torn, Rosario Dawson, Sergio Calderón, Siobhan Fallon Hogan, Tommy Lee Jones, Tony Shalhoub, Vincent D'Onofrio, Will Smith]","[United States]",Barry Sonnenfeld,1997,2002,2,2,"[PG-13]",2,0
+"[Elizabeth Perkins, James Marsden, Jane Krakowski, Ken Jeong, Kimiko Glenn, Liza Koshy, Michael McKean, Phil LaMarr, Sofia Carson, Vanessa Hudgens]",[],"Robert Cullen, José Luis Ucha",2021,2021,1,1,"[PG]",1,0
+[],"[United States]",Kirsten Johnson,2020,2020,1,1,"[PG-13]",1,0

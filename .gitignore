@@ -1,5 +1,6 @@
 **.DS_Store
 **.turntable.sql
+**.db
 
 target/
 state/

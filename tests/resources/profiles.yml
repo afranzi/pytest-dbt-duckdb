@@ -1,0 +1,8 @@
+pytest:
+  target: duckdb
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "{{ env_var('DBT_DUCKDB_PATH') }}"
+      database: "{{ env_var('DBT_DUCKDB_DATABASE') }}"
+      schema: "dbt_pytest_gummy"

@@ -1,0 +1,144 @@
+version: 2
+models:
+  - name: dim_movies
+    description: Listings of movies
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: show_id
+        description: Unique identifier for each show (s1, s2).
+        data_type: text
+      - name: title
+        description: The name of the Netflix title.
+        data_type: text
+      - name: director
+        description: The director of the title
+        data_type: text
+      - name: show_cast
+        description: The main actors involved in the title.
+        data_type: text[]
+      - name: countries
+        description: The countries where the title was produced.
+        data_type: text[]
+      - name: date_added
+        description: The date when the title was added to Netflix.
+        data_type: date
+      - name: release_year
+        description: The year the title was originally released.
+        data_type: integer
+      - name: rating_id
+        description: The content rating ("PG-13", "TV-MA").
+        data_type: text
+      - name: rating_name
+        description: Readable Rating name
+        data_type: text
+      - name: only_adults
+        description: Flag to indicate if the show aims to be watched by only adults
+        data_type: boolean
+      - name: min_age
+        description: Suitable for people over this age
+        data_type: integer
+      - name: duration
+        description: Duration of the movie (in minutes).
+        data_type: integer
+      - name: listed_in
+        description: Categories or genres the title falls under ("Documentaries", "TV Dramas").
+        data_type: text[]
+  - name: dim_tv_shows
+    description: Listings of tv shows
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: show_id
+        description: Unique identifier for each show (s1, s2).
+        data_type: text
+      - name: title
+        description: The name of the Netflix title.
+        data_type: text
+      - name: director
+        description: The director of the title
+        data_type: text
+      - name: show_cast
+        description: The main actors involved in the title.
+        data_type: text[]
+      - name: countries
+        description: The countries where the title was produced.
+        data_type: text[]
+      - name: date_added
+        description: The date when the title was added to Netflix.
+        data_type: date
+      - name: release_year
+        description: The year the title was originally released.
+        data_type: integer
+      - name: rating_id
+        description: The content rating ("PG-13", "TV-MA").
+        data_type: text
+      - name: rating_name
+        description: Readable Rating name
+        data_type: text
+      - name: only_adults
+        description: Flag to indicate if the show aims to be watched by only adults
+        data_type: boolean
+      - name: min_age
+        description: Suitable for people over this age
+        data_type: integer
+      - name: seasons
+        description: Number of seasons.
+        data_type: integer
+      - name: listed_in
+        description: Categories or genres the title falls under ("Documentaries", "TV Dramas").
+        data_type: text[]
+  - name: fct_cast
+    description: Actor metrics from all the show they participated in
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: actor_name
+        data_type: text
+      - name: shows
+        data_type: integer
+      - name: only_adult_shows
+        data_type: integer
+      - name: movies
+        data_type: integer
+      - name: tv_shows
+        data_type: integer
+      - name: first_show
+        data_type: integer
+      - name: last_show
+        data_type: integer
+      - name: total_movie_duration
+        data_type: integer
+      - name: tv_show_seasons
+        data_type: integer
+      - name: ratings
+        data_type: text[]
+  - name: fct_director
+    description: Director metrics from all the show they lead
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: director
+        data_type: text
+      - name: shows
+        data_type: integer
+      - name: only_adult_shows
+        data_type: integer
+      - name: movies
+        data_type: integer
+      - name: tv_shows
+        data_type: integer
+      - name: first_show
+        data_type: integer
+      - name: last_show
+        data_type: integer
+      - name: ratings
+        data_type: text[]
+      - name: countries
+        data_type: text[]
+      - name: actors
+        data_type: text[]

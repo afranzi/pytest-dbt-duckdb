@@ -1,0 +1,44 @@
+version: 2
+sources:
+  - name: raw
+    database: "{{ env_var('DBT_RAW_DATABASE', var('dbt_raw_database')) }}"
+    schema: netflix
+    tables:
+      - name: shows
+        columns:
+        - name: show_id
+          description: Unique identifier for each show (s1, s2).
+          data_type: text
+        - name: type
+          description: Specifies whether the title is a "Movie" or "TV Show".
+          data_type: text
+        - name: title
+          description: The name of the Netflix title.
+          data_type: text
+        - name: director
+          description: The director of the title
+          data_type: text
+        - name: cast
+          description: The main actors involved in the title.
+          data_type: text
+        - name: country
+          description: The countries where the title was produced.
+          data_type: text
+        - name: date_added
+          description: The date when the title was added to Netflix.
+          data_type: text
+        - name: release_year
+          description: The year the title was originally released.
+          data_type: integer
+        - name: rating
+          description: The content rating ("PG-13", "TV-MA").
+          data_type: text
+        - name: duration
+          description: Duration of the movie (in minutes) or the number of seasons for TV shows.
+          data_type: text
+        - name: listed_in
+          description: Categories or genres the title falls under ("Documentaries", "TV Dramas").
+          data_type: text
+        - name: description
+          description: The summary description
+          data_type: text

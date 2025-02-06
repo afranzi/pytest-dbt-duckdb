@@ -16,9 +16,17 @@ clean-targets:
   - "dbt_packages"
 
 seeds:
-  dummy_gummy:
-    +schema: seeds
+  +schema: seeds
 
 models:
   dummy_gummy:
-    +materialized: view
+    prod:
+      +materialized: table
+      intermediate:
+        +schema: int
+    staging:
+      +materialized: view
+      +schema: stg
+
+vars:
+  dbt_raw_database: dummy_duckdb

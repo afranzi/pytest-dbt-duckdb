@@ -1,14 +1,19 @@
 [project]
 name = "pytest-dbt-duckdb"
-version = "0.1.0"
+version = "0.1.1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
+classifiers = [
+    "Framework :: Pytest",
+]
 dependencies = [
     "absl-py>=2.1.0",
     "dbt-duckdb>=1.9.1",
     "numpy>=2.2.2",
     "pandas>=2.2.3",
+    "pyarrow>=19.0.0",
+    "pydantic-settings>=2.7.1",
     "pytest>=8.3.4",
     "pytest-env>=1.1.5",
     "ruamel-yaml>=0.18.10",
@@ -48,3 +53,11 @@ files = ["pytest_dbt_duckdb/*.py", "tests/*.py"]
 minversion = "7.0"
 addopts = "-p no:warnings"
 testpaths = ["tests"]
+env = [
+    "DBT_RAW_DATABASE = pyduck",
+    "DBT_DATABASE_NAME = pyduck",
+    "DBT_PROFILE = pytest"
+]
+
+[project.entry-points.pytest11]
+myproject = "pytest_dbt_duckdb.plugin"

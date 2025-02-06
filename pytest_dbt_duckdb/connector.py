@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
 from absl import logging
 from duckdb import DuckDBPyConnection
+from duckdb.duckdb.typing import DuckDBPyType
 from duckdb.typing import DATE, INTEGER, VARCHAR
+from pydantic import BaseModel, ConfigDict
 
 from pytest_dbt_duckdb.snowflake_functions import (
     array_size,
@@ -22,10 +24,35 @@ from pytest_dbt_duckdb.snowflake_functions import (
 )
 
 
+class DuckFunction(BaseModel):
+    name: str
+    function: Callable
+    parameters: list[DuckDBPyType] | None = None
+    return_type: DuckDBPyType | None = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class ExtraFunctions(BaseModel):
+    macros: list[str] | None = None
+    functions: list[DuckFunction] | None = None
+
+
 class DuckConnector:
-    def __init__(self, conn: DuckDBPyConnection) -> None:
+    def __init__(self, conn: DuckDBPyConnection, extra_functions: ExtraFunctions | None) -> None:
         self.conn = conn
         self.register_snowflake_functions()
+
+        if extra_functions:
+            for macro in extra_functions.macros or []:
+                self.execute(query=macro)
+            for fn in extra_functions.functions or []:
+                self.conn.create_function(
+                    name=fn.name,
+                    function=fn.function,
+                    parameters=fn.parameters,
+                    return_type=fn.return_type,
+                )
 
     def execute(self, query: str, parameters: dict[str, Any] | None = None) -> DuckDBPyConnection:
         logging.info(f"Running query = {query}")

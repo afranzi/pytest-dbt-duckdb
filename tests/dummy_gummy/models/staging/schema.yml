@@ -1,0 +1,68 @@
+version: 2
+models:
+  - name: stg_shows
+    description: Listings of movies and tv shows on Netflix
+    columns:
+      - name: show_id
+        description: Unique identifier for each show (s1, s2).
+        data_type: text
+        data_test:
+          - not_null
+          - unique
+      - name: show_type
+        description: Specifies whether the title is a "Movie" or "TV Show".
+        data_type: text
+      - name: title
+        description: The name of the Netflix title.
+        data_type: text
+      - name: director
+        description: The director of the title
+        data_type: text
+      - name: show_cast
+        description: The main actors involved in the title.
+        data_type: text[]
+      - name: countries
+        description: The countries where the title was produced.
+        data_type: text[]
+      - name: date_added
+        description: The date when the title was added to Netflix.
+        data_type: date
+      - name: release_year
+        description: The year the title was originally released.
+        data_type: integer
+      - name: rating
+        description: The content rating ("PG-13", "TV-MA").
+        data_type: text
+      - name: duration
+        description: Duration of the movie (in minutes) or the number of seasons for TV shows.
+        data_type: integer
+      - name: listed_in
+        description: Categories or genres the title falls under ("Documentaries", "TV Dramas").
+        data_type: text[]
+      - name: description
+        description: The summary description
+        data_type: text
+
+  - name: stg_show_rating
+    description: Map file with Rating System age & audiences
+    columns:
+      - name: rating_id
+        description: Unique Rating Identifier
+        data_type: text
+        data_test:
+          - not_null
+          - unique
+      - name: rating_name
+        description: Readable Rating name
+        data_type: text
+      - name: only_adults
+        description: Flag to indicate if the show aims to be watched by only adults
+        data_type: boolean
+      - name: min_age
+        description: Suitable for people over this age
+        data_type: integer
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 2
+              max_value: 18
+              inclusive: true
