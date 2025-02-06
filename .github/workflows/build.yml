@@ -23,7 +23,6 @@ jobs:
           uv run pytest -v
       - name: Uv Publish
         run: |
-          uv run dbt deps
           uv build
           uv publish
         env:
