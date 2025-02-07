@@ -1,10 +1,8 @@
-name: Build Library
+name: Build & Test
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
+  push:
     branches:
       - main
 
@@ -25,9 +23,3 @@ jobs:
           uv run mypy
           uv run dbt deps --project-dir tests/dummy_gummy
           uv run pytest -v
-      - name: Uv Publish
-        run: |
-          uv build
-          uv publish
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
