@@ -23,7 +23,7 @@ jobs:
       - name: Run tests
         run: |
           uv run mypy
-          uv run dbt deps
+          uv run dbt deps --project-dir tests/dummy_gummy
           uv run pytest -v
       - name: Uv Publish
         run: |
