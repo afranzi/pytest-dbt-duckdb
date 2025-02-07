@@ -27,8 +27,8 @@ from pytest_dbt_duckdb.snowflake_functions import (
 class DuckFunction(BaseModel):
     name: str
     function: Callable
-    parameters: list[DuckDBPyType] | None = None
-    return_type: DuckDBPyType | None = None
+    parameters: list[DuckDBPyType | Any] | None = None
+    return_type: DuckDBPyType | Any | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
