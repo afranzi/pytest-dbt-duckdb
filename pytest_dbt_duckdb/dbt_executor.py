@@ -32,7 +32,6 @@ class DbtExecutor:
         return dbt.invoke(dbt_command)
 
     def parse_project(self) -> dict[str, SourceDefinition | ModelNode]:
-        self.execute(command="deps")
         res: dbtRunnerResult = self.execute(command="parse")
 
         result_sources: list[SourceDefinition] = res.result.sources.values()  # type: ignore
