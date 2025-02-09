@@ -1,7 +1,7 @@
 [project]
 name = "pytest-dbt-duckdb"
-version = "0.1.6"
-description = "pytest-dbt-duckdb is an open-source testing framework that allows you to validate dbt models end-to-end, using DuckDB as an in-memory execution engine. Designed for speed, portability, and CI/CD automation, it enables you to test dbt transformations before deployment, ensuring trust in your data."
+version = "0.1.7"
+description = "Fearless testing for dbt models, powered by DuckDB."
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
