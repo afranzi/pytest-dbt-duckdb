@@ -65,6 +65,6 @@ Data must be tested, not trusted. Let’s test fearlessly.
 
 ---
 
-##  How It Works
+## :octicons-git-commit-24: How It Works
 
 :octicons-arrow-right-24: See the [Usage Section](usage.md)
