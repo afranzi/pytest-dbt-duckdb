@@ -1,6 +1,6 @@
 # PyTest dbt Duckdb 🦆
 
-Fearless testing for dbt models, powered by DuckDB :simple-duckdb:.
+Fearless testing for dbt models, powered by DuckDB.
 
 ## What is this?
 **pytest-dbt-duckdb** is an open-source testing framework that allows you to validate dbt models end-to-end, using DuckDB as
