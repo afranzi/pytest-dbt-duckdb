@@ -1,46 +1,70 @@
-# PyTest dbt Duckdb
+# :material-duck: PyTest dbt Duckdb
 
-A library for fearless analytics engineering, built for CI/CD integration.
+Fearless testing for dbt models, powered by DuckDB :simple-duckdb:.
 
 !!! info "What is this?"
-    E2E dbt Testing with DuckDB is a Python library designed to validate your dbt models end-to-end, running locally on
-    DuckDB for fast, cost-efficient testing. Seamlessly integrate it into your CI/CD pipelines and catch errors before they catch you.
+    **pytest-dbt-duckdb** is an open-source testing framework that allows you to validate dbt models end-to-end, using DuckDB as
+    an in-memory execution engine. Designed for speed, portability, and CI/CD automation, it enables you to test dbt
+    transformations before deployment, ensuring trust in your data.
 
-## 🔍 Why This Exists
+## :octicons-zoom-in-24: Why This Exists
 
 !!! danger "Assumptions are dangerous."
     An untested model is a ticking time bomb—silent, unseen, but waiting to fail at the worst possible moment.
     This library ensures your transformations, dependencies, and outputs are battle-tested before deployment.
 
-## 💡 Data must be tested, not trusted.
+## :octicons-light-bulb-24: Data must be tested, not trusted.
 
-Modern data teams ship thousands of transformations, yet most rely on post-mortem debugging instead of proactive validation. This stops today.
+Modern analytics teams **move fast**—but in their race to ship, they often **skip a crucial step**: rigorous testing.
+A broken transformation can mean misreported revenue, misleading product insights, or silent failures that creep into dashboards.
+
+!!! tip ""
+    "Each dbt model untested is a story unfinished."
+
+Here, in the shadows of SQL models and YAML configurations, we forge a guardian—a pytest plugin
+that ensures every dbt model is **battle-tested**, **validated**, and **ready** before it touches production.
 
 With DuckDB as the testing engine, you can:
 
-- [x] Define and validate data scenarios before deployment.
-- [x] Run ultra-fast local tests without expensive cloud queries.
-- [x] Embed dbt testing directly into CI/CD pipelines.
+- [x] **Define** test cases with simple YAML scenarios.
+- [x] **Execute** them in DuckDB, locally and instantly—no warehouse needed.
+- [x] **Integrate** with **CI/CD pipelines**, catching errors before deployment.
+- [x] **Extend** with **custom DuckDB functions** for specialized assertions.
 
-Test fearlessly. Deploy confidently.
+Data must be tested, not trusted. Let’s test fearlessly.
 
-## 🚀 How It Works
+<figure markdown="span">
+  ![Image title](images/dbt-flow.jpg)
+  <figcaption>DBT E2E Test Flow</figcaption>
+</figure>
 
-- :one: Define Your Tests
-Write E2E validation scenarios in YAML, specifying inputs, transformations, and expected outputs.
+---
 
-- :two: Run with DuckDB
-Execute tests locally—without the cost or delay of running queries in production.
+## :octicons-rocket-24: Who is this for?
 
-- :three: Integrate with CI/CD
-Embed tests into GitHub Actions, Jenkins, GitLab CI/CD, or any automation pipeline.
+!!! tip ""
+    Whether you are a **craftsman of data** or a **guardian of analytics**, this library is **your lantern in the dark,
+    guiding you toward precision and reliability**.
 
-- :four: Ship Data You Trust
-Prevent bad models before they hit production.
+- :octicons-pin-24: **Data Engineers** → Validate dbt models before they reach production.
+- :octicons-pin-24: **Analytics Engineers** → Ensure clean, tested data in dashboards.
+- :octicons-pin-24: **CI/CD Developers** → Automate SQL testing in pull requests.
 
-## 🎬 Join the Journey
-Data engineering is not just about moving bytes. It’s about storytelling, precision, and trust.
-This library is your watchtower, ensuring every model tells the right story—before it ever reaches an audience.
+---
 
-!!! quote
-    "A model untested is a story unfinished."
+## :octicons-link-24: Key Features
+
+| Feature                                        | Description                                                      |
+|:-----------------------------------------------|:-----------------------------------------------------------------|
+| :material-check-decagram: **Fast Testing**     | Runs entirely in DuckDB—no warehouse costs.                      |
+| :material-hammer-wrench:️ **YAML-Based Tests**     | Define test scenarios using declarative YAML.                    |
+| :material-refresh-circle: **CI/CD Ready**          | Seamless integration with GitHub Actions, Jenkins, GitLab CI/CD. |
+| :material-power-plug-outline: **Custom Functions** | Extend with user-defined DuckDB functions.                       |
+| :material-test-tube: **Snapshot Testing**          | Compare actual vs. expected outputs with precision.              |
+
+
+---
+
+##  How It Works
+
+:octicons-arrow-right-24: See the [Usage Section](usage.md)
