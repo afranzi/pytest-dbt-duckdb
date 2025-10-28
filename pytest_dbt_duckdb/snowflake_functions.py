@@ -33,7 +33,7 @@ def date_add(unit: str, value: int, timestamp: datetime) -> datetime:
 
 def iff() -> str:
     return """
-        CREATE MACRO iff(condition, true_value, false_value) AS (
+        CREATE MACRO IF NOT EXISTS iff(condition, true_value, false_value) AS (
             CASE
                 WHEN condition THEN true_value
                 ELSE false_value
@@ -43,12 +43,12 @@ def iff() -> str:
 
 
 def bitand() -> str:
-    return "CREATE MACRO BITAND(a, b) AS (a & b);"
+    return "CREATE MACRO IF NOT EXISTS BITAND(a, b) AS (a & b);"
 
 
 def array_size() -> str:
     return """
-        CREATE MACRO array_size(arr) AS (
+        CREATE MACRO IF NOT EXISTS array_size(arr) AS (
             CASE
                 WHEN arr IS NULL THEN NULL
                 ELSE ARRAY_LENGTH(arr)
@@ -59,7 +59,7 @@ def array_size() -> str:
 
 def array_union_agg() -> str:
     return """
-        CREATE MACRO array_union_agg(field) AS (
+        CREATE MACRO IF NOT EXISTS array_union_agg(field) AS (
             list_distinct(flatten(list(field)))
         );
     """
@@ -67,7 +67,7 @@ def array_union_agg() -> str:
 
 def to_decimal() -> str:
     return """
-        CREATE MACRO to_decimal(expr, precision, scale) AS (
+        CREATE MACRO IF NOT EXISTS to_decimal(expr, precision, scale) AS (
             CAST(expr as DECIMAL(12,5))
         );
     """
@@ -75,7 +75,7 @@ def to_decimal() -> str:
 
 def div0() -> str:
     return """
-        CREATE MACRO div0(numerator, denominator) AS (
+        CREATE MACRO IF NOT EXISTS div0(numerator, denominator) AS (
             CASE
                 WHEN denominator = 0 THEN 0
                 ELSE numerator / denominator
