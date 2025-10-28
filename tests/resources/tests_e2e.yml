@@ -13,3 +13,17 @@ tests:
       - schema: 'dbt_pytest_gummy'
         table: 'fct_cast'
         path: 'e2e/then/fct_cast.csv'
+  - id: Validate full project again
+    given:
+      - schema: netflix
+        table: shows
+        path: 'e2e/given/netflix_titles.csv'
+    seed: seed_show_ratings
+    build: '+int_show+'
+    then:
+      - schema: 'dbt_pytest_gummy'
+        table: 'fct_director'
+        path: 'e2e/then/fct_director.csv'
+      - schema: 'dbt_pytest_gummy'
+        table: 'fct_cast'
+        path: 'e2e/then/fct_cast.csv'

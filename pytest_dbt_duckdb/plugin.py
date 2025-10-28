@@ -79,15 +79,11 @@ def load_yaml_tests(directory: str) -> Iterable[TestFixture]:
 
 @pytest.fixture(scope="function")
 def duckdb_fixture() -> Iterable[DuckFixture]:
-    temp_dir = tempfile.gettempdir()
-    settings = PyDuckSettings(temp_dir=str(temp_dir))
+    with tempfile.TemporaryDirectory() as temp_dir:
+        settings = PyDuckSettings(temp_dir=str(temp_dir))
 
-    conn = duckdb.connect(settings.db_file_path)
-    try:
-        yield DuckFixture(conn=conn, settings=settings)
-    finally:
-        conn.close()
-
-    # Remove the file after the test
-    if os.path.exists(settings.db_file_path):
-        os.remove(settings.db_file_path)
+        conn = duckdb.connect(settings.db_file_path)
+        try:
+            yield DuckFixture(conn=conn, settings=settings)
+        finally:
+            conn.close()
