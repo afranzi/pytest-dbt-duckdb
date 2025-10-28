@@ -20,13 +20,16 @@ class DbtTestNode(BaseModel):
 
 
 class DbtValidator:
-    def __init__(self, connector: DuckConnector, executor: DbtExecutor, resources_folder: str) -> None:
+    def __init__(
+        self, connector: DuckConnector, executor: DbtExecutor, resources_folder: str, debug_output: bool = False
+    ) -> None:
         self.connector = connector
         self.executor = executor
         self.resources_folder = resources_folder
 
         # Initialize validator
         self.nodes = self.executor.parse_project()
+        self.debug_output = debug_output
 
     def dbt_create_model(
         self,
@@ -107,10 +110,10 @@ class DbtValidator:
         for column in df.select_dtypes(include=["datetime"]):
             df[column] = df[column].astype(str)
         if print_json:
-            # df.to_csv(
-            #     path_or_buf=f".../print_{node.table}.csv",
-            #     index=False,
-            # )
+            df.to_csv(
+                path_or_buf=f"/tmp/print_{node.table}.csv",
+                index=False,
+            )
             pass
         print(df)
 
@@ -136,7 +139,7 @@ class DbtValidator:
                 assert_frame_equal(df, expected_df, rtol=1e-5, atol=1e-8)
             except AssertionError as error:
                 print(f"Error at node {node.table}")
-                self.display_df(node=node, df=df, print_json=False)
+                self.display_df(node=node, df=df, print_json=self.debug_output)
                 self.display_df(node=node, df=expected_df)
                 raise error
 

@@ -25,6 +25,7 @@ class TestFixture(BaseModel):
 class PyDuckSettings(BaseSettings):
     temp_dir: str
     database_name: str = "dbt_duck"
+    debug_output: bool = False
     model_config = SettingsConfigDict(env_prefix="dbt_")
 
     @property
