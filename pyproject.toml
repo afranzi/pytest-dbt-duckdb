@@ -1,6 +1,6 @@
 [project]
 name = "pytest-dbt-duckdb"
-version = "0.1.8"
+version = "0.1.9"
 description = "Fearless testing for dbt models, powered by DuckDB."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,6 +19,7 @@ classifiers = [
 dependencies = [
     "absl-py>=2.1.0",
     "dbt-duckdb>=1.9.1",
+    "duckdb==1.2.2",
     "numpy>=2.2.2",
     "pandas>=2.2.3",
     "pyarrow>=19.0.0",

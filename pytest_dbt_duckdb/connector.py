@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 from absl import logging
 from duckdb import DuckDBPyConnection
-from duckdb.duckdb.typing import DuckDBPyType
-from duckdb.typing import DATE, INTEGER, VARCHAR
+from duckdb.typing import DATE, INTEGER, VARCHAR, DuckDBPyType
 from pydantic import BaseModel, ConfigDict
 
 from pytest_dbt_duckdb.snowflake_functions import (
