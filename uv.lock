@@ -1333,7 +1333,7 @@ wheels = [
 
 [[package]]
 name = "pytest-dbt-duckdb"
-version = "0.1.12"
+version = "0.1.13"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },

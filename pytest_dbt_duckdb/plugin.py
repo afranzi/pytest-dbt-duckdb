@@ -58,7 +58,12 @@ class DuckFixture(BaseModel):
         os.environ["DBT_DUCKDB_DATABASE"] = self.settings.database_name
 
         executor = DbtExecutor(dbt_project_dir=dbt_project_dir, profiles_dir=resources_folder)
-        validator = DbtValidator(connector=connector, executor=executor, resources_folder=resources_folder)
+        validator = DbtValidator(
+            connector=connector,
+            executor=executor,
+            resources_folder=resources_folder,
+            debug_output=self.settings.debug_output,
+        )
         validator.validate(nodes_to_load=nodes_to_load, nodes_to_validate=nodes_to_validate, seed=seed, build=build)
 
 
