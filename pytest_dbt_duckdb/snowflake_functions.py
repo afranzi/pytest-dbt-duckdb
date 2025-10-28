@@ -86,7 +86,7 @@ def div0() -> str:
 
 def current_timestamp() -> str:
     return """
-        CREATE MACRO current_timestamp() AS (
+        CREATE MACRO IF NOT EXISTS current_timestamp() AS (
             current_localtimestamp()
         );
     """
