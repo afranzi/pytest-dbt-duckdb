@@ -19,7 +19,9 @@ class DbtExecutor:
     def execute(self, command: str, params: list | None = None) -> dbtRunnerResult:
         dbt = dbtRunner()
         params = params or []
-        extra_vars = [f"--vars {json.dumps({key: value})}" for key, value in self.extra_vars.items()]
+        extra_vars = [json.dumps({key: value}) for key, value in self.extra_vars.items()]
+        extra_vars = [x for val in extra_vars for x in ("--vars", val)]
+
         invoke_command = [
             command,
             "--project-dir",
