@@ -52,12 +52,13 @@ class DuckFixture(BaseModel):
         seed: str | None = None,
         build: str | list[str] | None = None,
         extra_functions: ExtraFunctions | None = None,
+        extra_vars: dict | None = None,
     ) -> None:
         connector = DuckConnector(conn=self.conn, extra_functions=extra_functions)
         os.environ["DBT_DUCKDB_PATH"] = self.settings.db_file_path
         os.environ["DBT_DUCKDB_DATABASE"] = self.settings.database_name
 
-        executor = DbtExecutor(dbt_project_dir=dbt_project_dir, profiles_dir=resources_folder)
+        executor = DbtExecutor(dbt_project_dir=dbt_project_dir, profiles_dir=resources_folder, extra_vars=extra_vars)
         validator = DbtValidator(
             connector=connector,
             executor=executor,

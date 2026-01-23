@@ -11,13 +11,15 @@ class DbtExecException(Exception):
 
 
 class DbtExecutor:
-    def __init__(self, dbt_project_dir: str, profiles_dir: str) -> None:
+    def __init__(self, dbt_project_dir: str, profiles_dir: str, extra_vars: dict | None = None) -> None:
         self.dbt_project_dir = dbt_project_dir
         self.profiles_dir = profiles_dir
+        self.extra_vars = extra_vars or {}
 
     def execute(self, command: str, params: list | None = None) -> dbtRunnerResult:
         dbt = dbtRunner()
         params = params or []
+        extra_vars = [f"--vars {json.dumps({key: value})}" for key, value in self.extra_vars.items()]
         invoke_command = [
             command,
             "--project-dir",
@@ -26,7 +28,7 @@ class DbtExecutor:
             self.profiles_dir,
             "--vars",
             json.dumps({"elementary_enabled": False}),
-        ]
+        ] + extra_vars
         dbt_command = list(filter(lambda x: x, invoke_command + params))
         logging.info(f"DBT execute {dbt_command}")
         return dbt.invoke(dbt_command)
