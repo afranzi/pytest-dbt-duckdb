@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
 from typing import Any, Callable
 
 import numpy as np
@@ -98,6 +99,8 @@ class DuckConnector:
                 return make_hashable(value.tolist())
             elif isinstance(value, (list, dict)):
                 return json.dumps(value, sort_keys=True)
+            elif isinstance(value, (datetime, date)):
+                return value.isoformat()
             return value
 
         df = df.map(make_hashable)
