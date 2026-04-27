@@ -1351,7 +1351,7 @@ wheels = [
 
 [[package]]
 name = "pytest-dbt-duckdb"
-version = "0.1.16"
+version = "0.1.17"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },
@@ -1366,11 +1366,15 @@ dependencies = [
     { name = "ruamel-yaml" },
 ]
 
+[package.optional-dependencies]
+parallel = [
+    { name = "pytest-xdist" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
     { name = "pre-commit" },
-    { name = "pytest-xdist" },
     { name = "ruff" },
     { name = "tox" },
 ]
@@ -1393,14 +1397,15 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.7.1" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-env", specifier = ">=1.1.5" },
+    { name = "pytest-xdist", marker = "extra == 'parallel'", specifier = ">=3.6.0" },
     { name = "ruamel-yaml", specifier = ">=0.18.10" },
 ]
+provides-extras = ["parallel"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.14.1" },
     { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "pytest-xdist", specifier = ">=3.6.0" },
     { name = "ruff", specifier = ">=0.9.3" },
     { name = "tox", specifier = ">=4.24.1" },
 ]

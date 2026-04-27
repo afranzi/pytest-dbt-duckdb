@@ -201,7 +201,7 @@ Use them as a starting point for writing your own end-to-end dbt model tests!
     parallelise the suite with [`pytest-xdist`](https://pytest-xdist.readthedocs.io/).
 
 ```shell
-pip install pytest-xdist
+pip install "pytest-dbt-duckdb[parallel]"   # pulls in pytest-xdist
 pytest -n auto
 ```
 
