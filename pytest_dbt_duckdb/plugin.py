@@ -36,6 +36,14 @@ class PyDuckSettings(BaseSettings):
     def database_file(self) -> str:
         return f"{self.database_name}.duckdb"
 
+    @property
+    def target_path(self) -> str:
+        return os.path.join(self.temp_dir, "dbt_target")
+
+    @property
+    def log_path(self) -> str:
+        return os.path.join(self.temp_dir, "dbt_logs")
+
 
 class DuckFixture(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -58,7 +66,13 @@ class DuckFixture(BaseModel):
         os.environ["DBT_DUCKDB_PATH"] = self.settings.db_file_path
         os.environ["DBT_DUCKDB_DATABASE"] = self.settings.database_name
 
-        executor = DbtExecutor(dbt_project_dir=dbt_project_dir, profiles_dir=resources_folder, extra_vars=extra_vars)
+        executor = DbtExecutor(
+            dbt_project_dir=dbt_project_dir,
+            profiles_dir=resources_folder,
+            extra_vars=extra_vars,
+            target_path=self.settings.target_path,
+            log_path=self.settings.log_path,
+        )
         validator = DbtValidator(
             connector=connector,
             executor=executor,
