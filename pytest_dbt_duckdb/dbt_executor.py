@@ -10,11 +10,23 @@ class DbtExecException(Exception):
     pass
 
 
+_PARSE_CACHE: dict[tuple, dict] = {}
+
+
 class DbtExecutor:
-    def __init__(self, dbt_project_dir: str, profiles_dir: str, extra_vars: dict | None = None) -> None:
+    def __init__(
+        self,
+        dbt_project_dir: str,
+        profiles_dir: str,
+        extra_vars: dict | None = None,
+        target_path: str | None = None,
+        log_path: str | None = None,
+    ) -> None:
         self.dbt_project_dir = dbt_project_dir
         self.profiles_dir = profiles_dir
         self.extra_vars = extra_vars or {}
+        self.target_path = target_path
+        self.log_path = log_path
 
     def execute(self, command: str, params: list | None = None) -> dbtRunnerResult:
         dbt = dbtRunner()
@@ -22,7 +34,11 @@ class DbtExecutor:
         extra_vars = [json.dumps({key: value}) for key, value in self.extra_vars.items()]
         extra_vars = [x for val in extra_vars for x in ("--vars", val)]
 
-        invoke_command = [
+        invoke_command: list[str] = []
+        if self.log_path:
+            invoke_command += ["--log-path", self.log_path]
+
+        invoke_command += [
             command,
             "--project-dir",
             self.dbt_project_dir,
@@ -31,11 +47,24 @@ class DbtExecutor:
             "--vars",
             json.dumps({"elementary_enabled": False}),
         ] + extra_vars
+
+        if self.target_path:
+            invoke_command += ["--target-path", self.target_path]
+
         dbt_command = list(filter(lambda x: x, invoke_command + params))
         logging.info(f"DBT execute {dbt_command}")
         return dbt.invoke(dbt_command)
 
     def parse_project(self) -> dict[str, SourceDefinition | ModelNode]:
+        cache_key = (
+            self.dbt_project_dir,
+            self.profiles_dir,
+            json.dumps(self.extra_vars, sort_keys=True, default=str),
+        )
+        cached = _PARSE_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
+
         res: dbtRunnerResult = self.execute(command="parse")
 
         result_sources: list[SourceDefinition] = res.result.sources.values()  # type: ignore
@@ -45,7 +74,9 @@ class DbtExecutor:
         models = [model for model in result_models if model.columns]
 
         nodes = sources + models
-        return {f"{node.schema}.{node.identifier}": node for node in nodes}
+        parsed = {f"{node.schema}.{node.identifier}": node for node in nodes}
+        _PARSE_CACHE[cache_key] = parsed
+        return parsed
 
     @staticmethod
     def validate_execution(res: dbtRunnerResult) -> None:

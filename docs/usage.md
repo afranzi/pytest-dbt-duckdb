@@ -193,6 +193,23 @@ Use them as a starting point for writing your own end-to-end dbt model tests!
 
 ---
 
+## :material-speedometer: Running tests in parallel
+
+!!! tip "Use pytest-xdist for fan-out"
+    The plugin isolates dbt artifacts per test by routing `--target-path` and `--log-path`
+    into the temporary directory owned by `duckdb_fixture`. As a result, you can safely
+    parallelise the suite with [`pytest-xdist`](https://pytest-xdist.readthedocs.io/).
+
+```shell
+pip install pytest-xdist
+pytest -n auto
+```
+
+Each xdist worker is a separate process, so the in-memory manifest cache and the
+per-test DuckDB file are naturally isolated. No additional configuration is required.
+
+---
+
 ## :octicons-light-bulb-24: Summary
 - Define input data (given), models to build (build), and expected outputs (then).
 - Configure dbt using profiles.yml and environment variables.
