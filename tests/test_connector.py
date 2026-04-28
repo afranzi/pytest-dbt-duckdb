@@ -13,8 +13,9 @@ from pathlib import Path
 
 import duckdb
 import pytest
+from duckdb.typing import INTEGER
 
-from pytest_dbt_duckdb.connector import DuckConnector
+from pytest_dbt_duckdb.connector import DuckConnector, DuckFunction, ExtraFunctions
 from pytest_dbt_duckdb.plugin import reset_user_schemas
 
 
@@ -114,5 +115,60 @@ class TestResetUserSchemas:
         try:
             reset_user_schemas(conn)  # No user schemas; must not raise.
             reset_user_schemas(conn)  # Idempotent.
+        finally:
+            conn.close()
+
+
+class TestExtraFunctionsIdempotency:
+    """Consumer-supplied extra_functions also need to be idempotent. With stable
+    DBT_DUCKDB_PATH per worker, every test re-instantiates DuckConnector against
+    the same DuckDB DB — so user macros (CREATE MACRO ...) and UDFs would otherwise
+    error on the second test."""
+
+    def test_user_macros_can_be_registered_twice(self, db_path) -> None:
+        macros = [
+            "CREATE MACRO my_double(x) AS (x * 2)",
+            "CREATE MACRO my_triple(x) AS (x * 3)",
+        ]
+        extras = ExtraFunctions(macros=macros)
+
+        conn1 = duckdb.connect(db_path)
+        DuckConnector(conn=conn1, extra_functions=extras)
+        conn1.close()
+
+        conn2 = duckdb.connect(db_path)
+        try:
+            DuckConnector(conn=conn2, extra_functions=extras)  # Must NOT raise.
+            assert conn2.execute("SELECT my_double(5), my_triple(4)").fetchone() == (10, 12)
+        finally:
+            conn2.close()
+
+    def test_user_udfs_can_be_registered_twice(self, db_path) -> None:
+        def square(n):
+            return n * n
+
+        extras = ExtraFunctions(
+            functions=[DuckFunction(name="my_square", function=square, parameters=[INTEGER], return_type=INTEGER)]
+        )
+
+        conn1 = duckdb.connect(db_path)
+        DuckConnector(conn=conn1, extra_functions=extras)
+        conn1.close()
+
+        conn2 = duckdb.connect(db_path)
+        try:
+            DuckConnector(conn=conn2, extra_functions=extras)  # Must NOT raise.
+            assert conn2.execute("SELECT my_square(7)").fetchone() == (49,)
+        finally:
+            conn2.close()
+
+    def test_create_or_replace_macros_pass_through(self, db_path) -> None:
+        """Consumers who already wrote CREATE OR REPLACE MACRO must not have their
+        SQL altered in any breaking way."""
+        macros = ["CREATE OR REPLACE MACRO already_replace(x) AS (x + 100)"]
+        conn = duckdb.connect(db_path)
+        try:
+            DuckConnector(conn=conn, extra_functions=ExtraFunctions(macros=macros))
+            assert conn.execute("SELECT already_replace(1)").fetchone() == (101,)
         finally:
             conn.close()

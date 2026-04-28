@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime
 from typing import Any, Callable
 
@@ -38,6 +39,19 @@ class ExtraFunctions(BaseModel):
     functions: list[DuckFunction] | None = None
 
 
+_CREATE_MACRO_PATTERN = re.compile(r"\bCREATE\s+MACRO\b(?!\s+IF\s+NOT\s+EXISTS)", re.IGNORECASE)
+
+
+def _make_macro_idempotent(sql: str) -> str:
+    """Rewrite `CREATE MACRO` -> `CREATE OR REPLACE MACRO` (case-insensitive) so the
+    same macro can be re-registered safely when the underlying DuckDB DB is reused
+    across tests. Already-idempotent forms (`CREATE OR REPLACE MACRO`,
+    `CREATE MACRO IF NOT EXISTS`) are left alone."""
+    if "OR REPLACE" in sql.upper():
+        return sql
+    return _CREATE_MACRO_PATTERN.sub("CREATE OR REPLACE MACRO", sql, count=1)
+
+
 class DuckConnector:
     def __init__(self, conn: DuckDBPyConnection, extra_functions: ExtraFunctions | None) -> None:
         self.conn = conn
@@ -45,12 +59,12 @@ class DuckConnector:
 
         if extra_functions:
             for macro in extra_functions.macros or []:
-                self.execute(query=macro)
+                self.execute(query=_make_macro_idempotent(macro))
             for fn in extra_functions.functions or []:
-                self.conn.create_function(
+                self._register_udf_if_absent(
                     name=fn.name,
                     function=fn.function,
-                    parameters=fn.parameters,
+                    parameters=fn.parameters or [],
                     return_type=fn.return_type,
                 )
 
