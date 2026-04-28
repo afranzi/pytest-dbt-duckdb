@@ -210,6 +210,34 @@ per-test DuckDB file are naturally isolated. No additional configuration is requ
 
 ---
 
+## :material-stopwatch: Profiling slow tests
+
+!!! tip "Find out where each test's seconds are going"
+    When tests get slow in CI, run with `--duckdb-profile` to get a breakdown of
+    where the time is spent — per stage, per test, per worker.
+
+```shell
+pytest --duckdb-profile               # serial
+pytest --duckdb-profile -n auto       # xdist; one table per worker plus an aggregate
+```
+
+The profiler is opt-in. With the flag off, instrumentation is a no-op and adds
+no measurable overhead.
+
+Stages reported:
+
+- **`load_given`** — populating DuckDB source tables from CSV/JSON fixtures.
+- **`dbt_seed`** — `dbt seed --select <selector>`.
+- **`dbt_build`** — `dbt build --select <selector>`.
+- **`validate_then`** — fetching outputs and `assert_frame_equal` against expected fixtures.
+- **`dbt_invoke:<command>`** — wall time of each individual `dbtRunner.invoke` call (sub-stage; counted inside `dbt_seed` / `dbt_build` / parse).
+- **`parse_project:hit` / `parse_project:miss`** — in-memory manifest cache hits and misses. If you see many misses, your `extra_vars` are probably differing across tests.
+
+The `total` column in the per-test table sums only the four primary stages, so it
+reflects the wall time inside `DbtValidator.validate` (sub-stages aren't double-counted).
+
+---
+
 ## :octicons-light-bulb-24: Summary
 - Define input data (given), models to build (build), and expected outputs (then).
 - Configure dbt using profiles.yml and environment variables.

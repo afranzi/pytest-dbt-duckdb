@@ -5,6 +5,8 @@ from dbt.artifacts.schemas.results import TestStatus
 from dbt.cli.main import dbtRunner, dbtRunnerResult
 from dbt.contracts.graph.nodes import ModelNode, SourceDefinition
 
+from pytest_dbt_duckdb import profiler
+
 
 class DbtExecException(Exception):
     pass
@@ -53,7 +55,8 @@ class DbtExecutor:
 
         dbt_command = list(filter(lambda x: x, invoke_command + params))
         logging.info(f"DBT execute {dbt_command}")
-        return dbt.invoke(dbt_command)
+        with profiler.record(f"dbt_invoke:{command}"):
+            return dbt.invoke(dbt_command)
 
     def parse_project(self) -> dict[str, SourceDefinition | ModelNode]:
         cache_key = (
@@ -63,20 +66,23 @@ class DbtExecutor:
         )
         cached = _PARSE_CACHE.get(cache_key)
         if cached is not None:
+            with profiler.record("parse_project:hit"):
+                pass
             return cached
 
-        res: dbtRunnerResult = self.execute(command="parse")
+        with profiler.record("parse_project:miss"):
+            res: dbtRunnerResult = self.execute(command="parse")
 
-        result_sources: list[SourceDefinition] = res.result.sources.values()  # type: ignore
-        sources = [source for source in result_sources if source.columns]
+            result_sources: list[SourceDefinition] = res.result.sources.values()  # type: ignore
+            sources = [source for source in result_sources if source.columns]
 
-        result_models: list[ModelNode] = res.result.nodes.values()  # type: ignore
-        models = [model for model in result_models if model.columns]
+            result_models: list[ModelNode] = res.result.nodes.values()  # type: ignore
+            models = [model for model in result_models if model.columns]
 
-        nodes = sources + models
-        parsed = {f"{node.schema}.{node.identifier}": node for node in nodes}
-        _PARSE_CACHE[cache_key] = parsed
-        return parsed
+            nodes = sources + models
+            parsed = {f"{node.schema}.{node.identifier}": node for node in nodes}
+            _PARSE_CACHE[cache_key] = parsed
+            return parsed
 
     @staticmethod
     def validate_execution(res: dbtRunnerResult) -> None:

@@ -45,6 +45,8 @@ The plugin orchestrates a three-stage flow inside `DbtValidator.validate` (`pyte
 
 **Extending DuckDB**: consumers pass `ExtraFunctions(macros=[...], functions=[DuckFunction(...)])` to `execute_dbt` to register extra SQL macros and Python UDFs alongside the Snowflake shims.
 
+**Profiler** (`pytest_dbt_duckdb/profiler.py`): opt-in stage timer activated by `--duckdb-profile`. Wraps the four `DbtValidator.validate` stages (`load_given`, `dbt_seed`, `dbt_build`, `validate_then`) plus per-`dbtRunner.invoke` calls and `parse_project` cache hit/miss. Timings ride on `report.user_properties` so they cross xdist worker→controller. `pytest_terminal_summary` renders a per-worker table and an aggregate. When the flag is off, `record(...)` is a single boolean check, so the instrumentation in production code is free.
+
 ## Hard requirement: dbt column `data_type`
 
 Every column referenced in a `given` or `then` node **must** have an explicit `data_type` in the dbt project's `schema.yml`. The validator reads `node.columns[*].data_type` from the dbt manifest to issue `CREATE TABLE` DDL; missing types cause schema mismatches that surface as opaque test failures rather than clear errors. `MAP<...>` types are auto-rewritten to `JSON` (see `dbt_validator.dbt_insert_model` and `sql_methods.create_table`).

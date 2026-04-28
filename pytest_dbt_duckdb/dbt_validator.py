@@ -4,6 +4,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 from pydantic import BaseModel
 
+from pytest_dbt_duckdb import profiler
 from pytest_dbt_duckdb.connector import DuckConnector
 from pytest_dbt_duckdb.dbt_executor import DbtExecutor
 from pytest_dbt_duckdb.sql_methods import create_schema, create_table
@@ -155,12 +156,21 @@ class DbtValidator:
         build: str | list[str] | None = None,
     ) -> None:
         # STEP 1: Populate Source Tables with CSV/JSON files
-        self.dbt_load_nodes(nodes=nodes_to_load)
+        with profiler.record("load_given"):
+            self.dbt_load_nodes(nodes=nodes_to_load)
 
-        # STEP 2: Execute [seed|run|test] jobs & fail if execution errors
+        # STEP 2: Execute seed and build (timed separately)
         if build and isinstance(build, list):
             build = " ".join(build)
-        self.execute_dbt(seed=seed, build=str(build), quiet=False)
+        if seed:
+            with profiler.record("dbt_seed"):
+                seeds_res = self.executor.execute(command="seed", params=["--select", seed])
+                self.executor.validate_execution(seeds_res)
+        if build:
+            with profiler.record("dbt_build"):
+                build_res = self.executor.execute(command="build", params=["--select", str(build)])
+                self.executor.validate_execution(build_res)
 
         # STEP 3: Validate Output Tables versus CSV files
-        self.dbt_validate_nodes(nodes=nodes_to_validate)
+        with profiler.record("validate_then"):
+            self.dbt_validate_nodes(nodes=nodes_to_validate)
