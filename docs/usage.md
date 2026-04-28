@@ -248,6 +248,24 @@ reflects the wall time inside `DbtValidator.validate` (sub-stages aren't double-
 
 ---
 
+## :material-history: Behavioural changes in 0.1.19
+
+- **`DuckConnector` no longer auto-closes its connection.** The destructor (`__del__`)
+  was closing the underlying DuckDB connection at unpredictable garbage-collection
+  times, which became unsafe once the fixture started reusing connections across tests.
+  If you instantiate `DuckConnector` directly (rather than going through the
+  `duckdb_fixture`), you now own the connection lifecycle — close it yourself or use
+  the `with` context manager (`__enter__` / `__exit__` still close on exit).
+- **DuckDB file path is now per-worker, not per-test.** State isolation between tests
+  comes from dropping every non-system schema; the file (and its registered UDFs and
+  `partial_parse.msgpack`) survives across tests in the same worker, which is what
+  enables the parse-skipping speedup.
+- **Consumer-supplied `extra_functions.macros` are now wrapped to `CREATE OR REPLACE
+  MACRO` automatically** before execution. Already-idempotent forms
+  (`CREATE OR REPLACE MACRO`, `CREATE MACRO IF NOT EXISTS`) pass through unchanged.
+
+---
+
 ## :octicons-light-bulb-24: Summary
 - Define input data (given), models to build (build), and expected outputs (then).
 - Configure dbt using profiles.yml and environment variables.

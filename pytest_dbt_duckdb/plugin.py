@@ -139,7 +139,6 @@ def _dbt_artifacts_dir() -> Iterable[str]:
     pytest session. This is what makes DBT_DUCKDB_PATH stable across tests, which keeps
     dbt's partial_parse cache valid and lets the in-memory manifest cache hit."""
     with tempfile.TemporaryDirectory(prefix=worker_artifacts_prefix()) as artifacts_dir:
-        os.makedirs(artifacts_dir, exist_ok=True)
         yield artifacts_dir
 
 
@@ -153,6 +152,9 @@ def duckdb_fixture(_dbt_artifacts_dir: str) -> Iterable[DuckFixture]:
     settings = PyDuckSettings(temp_dir=_dbt_artifacts_dir, dbt_artifacts_dir=_dbt_artifacts_dir)
     conn = duckdb.connect(settings.db_file_path)
     try:
+        # Reset on entry as well as exit: a previous test may have crashed mid-flight
+        # and left state behind. Belt and braces — both are cheap (a single SELECT plus
+        # one DROP per leftover schema).
         reset_user_schemas(conn)
         yield DuckFixture(conn=conn, settings=settings)
     finally:

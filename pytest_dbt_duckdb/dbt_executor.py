@@ -18,6 +18,16 @@ _PARSE_CACHE: dict[tuple, dict] = {}
 # `dbtRunner(manifest=...)` on subsequent invocations — that's what lets dbt skip the
 # parse step on every `dbt build` / `dbt seed`. Same key shape as _PARSE_CACHE so the
 # two stay aligned by construction.
+#
+# Assumption: dbt treats the manifest as effectively immutable across invocations after
+# parse. Internal state (e.g., compiled SQL on individual nodes) may be set during a
+# build, but it doesn't break a subsequent build that re-uses the same manifest. Verified
+# empirically against the bundled e2e + a real consumer suite. If a future dbt-core
+# release introduces destructive mutation, this is the assumption to revisit.
+#
+# The cache has no eviction. Bounded by unique (project_dir, profiles_dir, extra_vars)
+# triples — typically one to a handful per worker. If consumers somehow drive that
+# unbounded, an LRU cap would be the right fix.
 _MANIFEST_CACHE: dict[tuple, Manifest] = {}
 
 

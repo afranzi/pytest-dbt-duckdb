@@ -39,6 +39,9 @@ class ExtraFunctions(BaseModel):
     functions: list[DuckFunction] | None = None
 
 
+# Match `CREATE MACRO` not followed by `IF NOT EXISTS`. The pattern requires CREATE
+# to be immediately followed by whitespace then MACRO — so `CREATE OR REPLACE MACRO`
+# (which has `OR REPLACE` in between) doesn't match in the first place.
 _CREATE_MACRO_PATTERN = re.compile(r"\bCREATE\s+MACRO\b(?!\s+IF\s+NOT\s+EXISTS)", re.IGNORECASE)
 
 
@@ -46,9 +49,11 @@ def _make_macro_idempotent(sql: str) -> str:
     """Rewrite `CREATE MACRO` -> `CREATE OR REPLACE MACRO` (case-insensitive) so the
     same macro can be re-registered safely when the underlying DuckDB DB is reused
     across tests. Already-idempotent forms (`CREATE OR REPLACE MACRO`,
-    `CREATE MACRO IF NOT EXISTS`) are left alone."""
-    if "OR REPLACE" in sql.upper():
-        return sql
+    `CREATE MACRO IF NOT EXISTS`) are left alone — the regex doesn't match them.
+
+    Expects one macro per SQL string (the public API is `extra_functions.macros: list[str]`,
+    so this is the natural shape). Multi-statement strings would only get the first
+    `CREATE MACRO` rewritten."""
     return _CREATE_MACRO_PATTERN.sub("CREATE OR REPLACE MACRO", sql, count=1)
 
 
