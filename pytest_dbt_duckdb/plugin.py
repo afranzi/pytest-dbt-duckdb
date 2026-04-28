@@ -180,6 +180,26 @@ def _format_table(title: str, headers: list[str], rows: list[list[str]]) -> str:
     return f"\n{title}\n{head}\n{bar}\n{body}\n"
 
 
+def primary_stage_order() -> list[str]:
+    """Stages reflecting per-test wall time, in chronological order.
+    parse_project runs in DbtValidator.__init__ (before validate()), so it sits between
+    load_given and dbt_seed in the timeline."""
+    return [
+        "load_given",
+        "parse_project:hit",
+        "parse_project:miss",
+        "dbt_seed",
+        "dbt_build",
+        "validate_then",
+    ]
+
+
+def compute_total(stages: dict[str, float]) -> float:
+    """Sum of primary stages only — excludes dbt_invoke:* sub-stages, which are
+    counted inside dbt_seed / dbt_build / parse_project:miss and would double-count."""
+    return sum(stages.get(s, 0.0) for s in primary_stage_order())
+
+
 def pytest_terminal_summary(terminalreporter: "pytest.TerminalReporter") -> None:
     if not terminalreporter.config.getoption("--duckdb-profile"):
         return
@@ -187,12 +207,11 @@ def pytest_terminal_summary(terminalreporter: "pytest.TerminalReporter") -> None
     if not rows:
         return
 
-    # Stage column order: known stages first, then any extras alphabetically.
-    known_stages = ["load_given", "dbt_seed", "dbt_build", "validate_then"]
+    primary = primary_stage_order()
     extra_stages: set[str] = set()
     for row in rows:
         extra_stages.update(row["stages"].keys())
-    stage_cols = known_stages + sorted(extra_stages - set(known_stages))
+    stage_cols = primary + sorted(extra_stages - set(primary))
 
     by_worker: dict[str, list[dict]] = {}
     for row in rows:
@@ -206,12 +225,9 @@ def pytest_terminal_summary(terminalreporter: "pytest.TerminalReporter") -> None
         table_rows: list[list[str]] = []
         for r in worker_rows:
             stages = r["stages"]
-            # Total sums only the top-level stages (load_given/dbt_seed/dbt_build/validate_then),
-            # not the dbt_invoke:* or parse_project:* sub-stages, which would double-count.
-            total = sum(stages.get(s, 0.0) for s in known_stages)
             cells = [r["nodeid"].split("::")[-1]]
             cells += [f"{stages[s]:.2f}s" if s in stages else "-" for s in stage_cols]
-            cells.append(f"{total:.2f}s")
+            cells.append(f"{compute_total(stages):.2f}s")
             table_rows.append(cells)
         out.append(_format_table(f"Worker: {worker} ({len(worker_rows)} tests)", headers, table_rows))
 

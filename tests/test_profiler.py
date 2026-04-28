@@ -7,6 +7,7 @@ import time
 import pytest
 
 from pytest_dbt_duckdb import profiler
+from pytest_dbt_duckdb.plugin import compute_total, primary_stage_order
 
 
 @pytest.fixture(autouse=True)
@@ -90,3 +91,44 @@ class TestSnapshot:
         profiler.reset()
         assert profiler.current() == {}
         assert profiler.counts() == {}
+
+
+class TestComputeTotal:
+    def test_sums_all_primary_stages_including_parse_project(self) -> None:
+        stages = {
+            "load_given": 0.10,
+            "parse_project:miss": 30.00,
+            "dbt_seed": 5.00,
+            "dbt_build": 20.00,
+            "validate_then": 0.05,
+        }
+        # parse_project runs in DbtValidator.__init__, BEFORE validate(), so it must
+        # be included in total to reflect the real per-test wall cost.
+        assert compute_total(stages) == pytest.approx(55.15)
+
+    def test_excludes_dbt_invoke_substages(self) -> None:
+        stages = {
+            "dbt_seed": 5.00,
+            "dbt_invoke:seed": 5.00,  # sub-stage of dbt_seed; would double-count
+            "dbt_build": 10.00,
+            "dbt_invoke:build": 10.00,
+        }
+        assert compute_total(stages) == pytest.approx(15.00)
+
+    def test_handles_missing_stages(self) -> None:
+        # build-only test (no seed): dbt_seed absent, must not error
+        stages = {"load_given": 0.01, "parse_project:miss": 30.0, "dbt_build": 30.0, "validate_then": 0.02}
+        assert compute_total(stages) == pytest.approx(60.03)
+
+    def test_includes_parse_project_hit(self) -> None:
+        stages = {"load_given": 0.01, "parse_project:hit": 0.001, "dbt_build": 20.0, "validate_then": 0.01}
+        assert compute_total(stages) == pytest.approx(20.021, abs=1e-3)
+
+
+class TestPrimaryStageOrder:
+    def test_chronological_order_with_parse_project_after_load_given(self) -> None:
+        order = primary_stage_order()
+        assert order.index("load_given") < order.index("parse_project:miss")
+        assert order.index("parse_project:miss") < order.index("dbt_seed")
+        assert order.index("dbt_seed") < order.index("dbt_build")
+        assert order.index("dbt_build") < order.index("validate_then")
