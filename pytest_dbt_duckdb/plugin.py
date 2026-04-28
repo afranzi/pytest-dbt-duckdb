@@ -29,11 +29,19 @@ class PyDuckSettings(BaseSettings):
     temp_dir: str
     database_name: str = "dbt_duck"
     debug_output: bool = False
+    dbt_artifacts_dir: str | None = None
     model_config = SettingsConfigDict(env_prefix="dbt_")
 
     @property
+    def _root(self) -> str:
+        # When dbt_artifacts_dir is set (per-worker stable path), all artifacts including
+        # the DuckDB file live there — that's what keeps DBT_DUCKDB_PATH stable across tests
+        # and lets dbt's partial_parse cache survive between tests.
+        return self.dbt_artifacts_dir or self.temp_dir
+
+    @property
     def db_file_path(self) -> str:
-        return os.path.join(self.temp_dir, self.database_file)
+        return os.path.join(self._root, self.database_file)
 
     @property
     def database_file(self) -> str:
@@ -41,11 +49,11 @@ class PyDuckSettings(BaseSettings):
 
     @property
     def target_path(self) -> str:
-        return os.path.join(self.temp_dir, "dbt_target")
+        return os.path.join(self._root, "dbt_target")
 
     @property
     def log_path(self) -> str:
-        return os.path.join(self.temp_dir, "dbt_logs")
+        return os.path.join(self._root, "dbt_logs")
 
 
 class DuckFixture(BaseModel):
@@ -100,14 +108,58 @@ def load_yaml_tests(directory: str) -> Iterable[TestFixture]:
             yield from load_yaml_test(file_path=file_path, yaml=yaml)
 
 
-@pytest.fixture(scope="function")
-def duckdb_fixture() -> Iterable[DuckFixture]:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        settings = PyDuckSettings(temp_dir=str(temp_dir))
+SYSTEM_SCHEMAS = frozenset({"main", "information_schema", "pg_catalog", "system", "temp"})
 
-        conn = duckdb.connect(settings.db_file_path)
+
+def reset_user_schemas(conn: DuckDBPyConnection) -> None:
+    """Drop every non-system schema in the connected DuckDB. Used between tests to
+    clear all dbt-created data while keeping the file (and its registered UDFs) intact —
+    that's what lets us hold DBT_DUCKDB_PATH stable per worker."""
+    user_schemas = [
+        row[0]
+        for row in conn.execute(
+            "SELECT DISTINCT schema_name FROM information_schema.schemata WHERE schema_name NOT IN "
+            f"({', '.join(['?'] * len(SYSTEM_SCHEMAS))})",
+            list(SYSTEM_SCHEMAS),
+        ).fetchall()
+    ]
+    for schema in user_schemas:
+        conn.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
+
+
+def worker_artifacts_prefix() -> str:
+    """Prefix for the per-xdist-worker dbt artifacts tempdir."""
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+    return f"pytest-dbt-duckdb-{worker}-"
+
+
+@pytest.fixture(scope="session")
+def _dbt_artifacts_dir() -> Iterable[str]:
+    """Per-worker dir holding the DuckDB file and dbt's target/log dirs across the whole
+    pytest session. This is what makes DBT_DUCKDB_PATH stable across tests, which keeps
+    dbt's partial_parse cache valid and lets the in-memory manifest cache hit."""
+    with tempfile.TemporaryDirectory(prefix=worker_artifacts_prefix()) as artifacts_dir:
+        yield artifacts_dir
+
+
+@pytest.fixture(scope="function")
+def duckdb_fixture(_dbt_artifacts_dir: str) -> Iterable[DuckFixture]:
+    """Per-test fixture. The DuckDB FILE PATH is stable across tests in this worker
+    (see _dbt_artifacts_dir); per-test isolation comes from dropping all user schemas
+    between tests rather than recreating the file. Reusing the file keeps registered
+    UDFs alive (DuckDB's process-wide DB cache), which combined with idempotent UDF
+    registration in DuckConnector makes this safe."""
+    settings = PyDuckSettings(temp_dir=_dbt_artifacts_dir, dbt_artifacts_dir=_dbt_artifacts_dir)
+    conn = duckdb.connect(settings.db_file_path)
+    try:
+        # Reset on entry as well as exit: a previous test may have crashed mid-flight
+        # and left state behind. Belt and braces — both are cheap (a single SELECT plus
+        # one DROP per leftover schema).
+        reset_user_schemas(conn)
+        yield DuckFixture(conn=conn, settings=settings)
+    finally:
         try:
-            yield DuckFixture(conn=conn, settings=settings)
+            reset_user_schemas(conn)
         finally:
             conn.close()
 

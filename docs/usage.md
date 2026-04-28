@@ -196,17 +196,27 @@ Use them as a starting point for writing your own end-to-end dbt model tests!
 ## :material-speedometer: Running tests in parallel
 
 !!! tip "Use pytest-xdist for fan-out"
-    The plugin isolates dbt artifacts per test by routing `--target-path` and `--log-path`
-    into the temporary directory owned by `duckdb_fixture`. As a result, you can safely
-    parallelise the suite with [`pytest-xdist`](https://pytest-xdist.readthedocs.io/).
+    The plugin keeps a single DuckDB file per xdist worker (stable `DBT_DUCKDB_PATH`),
+    resets state between tests by dropping user schemas, and caches the parsed dbt
+    `Manifest` per worker so every `dbt build`/`dbt seed` after the first skips the
+    parse step. Tune the worker count to your CI's CPU count — `-n 4` on a 4-vCPU
+    runner usually beats `-n auto`, since oversubscription costs more than it saves.
 
 ```shell
 pip install "pytest-dbt-duckdb[parallel]"   # pulls in pytest-xdist
-pytest -n auto
+pytest -n 4                                 # match your runner's vCPU count
 ```
 
-Each xdist worker is a separate process, so the in-memory manifest cache and the
-per-test DuckDB file are naturally isolated. No additional configuration is required.
+How isolation is split:
+
+- **Per test** — DuckDB content (every non-system schema is dropped between tests).
+- **Per xdist worker** — DuckDB file path, dbt `target/` and `logs/`, in-memory parsed
+  `Manifest` (`_MANIFEST_CACHE`) and column metadata (`_PARSE_CACHE`).
+
+Tradeoff: the first test on each worker pays a cold parse. Every subsequent test
+in that worker reuses the cached manifest. Round-robin scheduling (`pytest -n N`
+without `--dist loadfile`) gives every worker exactly one cold parse no matter how
+many tests it runs.
 
 ---
 
@@ -235,6 +245,24 @@ Stages reported:
 
 The `total` column in the per-test table sums only the four primary stages, so it
 reflects the wall time inside `DbtValidator.validate` (sub-stages aren't double-counted).
+
+---
+
+## :material-history: Behavioural changes in 0.1.19
+
+- **`DuckConnector` no longer auto-closes its connection.** The destructor (`__del__`)
+  was closing the underlying DuckDB connection at unpredictable garbage-collection
+  times, which became unsafe once the fixture started reusing connections across tests.
+  If you instantiate `DuckConnector` directly (rather than going through the
+  `duckdb_fixture`), you now own the connection lifecycle — close it yourself or use
+  the `with` context manager (`__enter__` / `__exit__` still close on exit).
+- **DuckDB file path is now per-worker, not per-test.** State isolation between tests
+  comes from dropping every non-system schema; the file (and its registered UDFs and
+  `partial_parse.msgpack`) survives across tests in the same worker, which is what
+  enables the parse-skipping speedup.
+- **Consumer-supplied `extra_functions.macros` are now wrapped to `CREATE OR REPLACE
+  MACRO` automatically** before execution. Already-idempotent forms
+  (`CREATE OR REPLACE MACRO`, `CREATE MACRO IF NOT EXISTS`) pass through unchanged.
 
 ---
 

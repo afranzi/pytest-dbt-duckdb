@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime
 from typing import Any, Callable
 
@@ -38,6 +39,24 @@ class ExtraFunctions(BaseModel):
     functions: list[DuckFunction] | None = None
 
 
+# Match `CREATE MACRO` not followed by `IF NOT EXISTS`. The pattern requires CREATE
+# to be immediately followed by whitespace then MACRO — so `CREATE OR REPLACE MACRO`
+# (which has `OR REPLACE` in between) doesn't match in the first place.
+_CREATE_MACRO_PATTERN = re.compile(r"\bCREATE\s+MACRO\b(?!\s+IF\s+NOT\s+EXISTS)", re.IGNORECASE)
+
+
+def _make_macro_idempotent(sql: str) -> str:
+    """Rewrite `CREATE MACRO` -> `CREATE OR REPLACE MACRO` (case-insensitive) so the
+    same macro can be re-registered safely when the underlying DuckDB DB is reused
+    across tests. Already-idempotent forms (`CREATE OR REPLACE MACRO`,
+    `CREATE MACRO IF NOT EXISTS`) are left alone — the regex doesn't match them.
+
+    Expects one macro per SQL string (the public API is `extra_functions.macros: list[str]`,
+    so this is the natural shape). Multi-statement strings would only get the first
+    `CREATE MACRO` rewritten."""
+    return _CREATE_MACRO_PATTERN.sub("CREATE OR REPLACE MACRO", sql, count=1)
+
+
 class DuckConnector:
     def __init__(self, conn: DuckDBPyConnection, extra_functions: ExtraFunctions | None) -> None:
         self.conn = conn
@@ -45,12 +64,12 @@ class DuckConnector:
 
         if extra_functions:
             for macro in extra_functions.macros or []:
-                self.execute(query=macro)
+                self.execute(query=_make_macro_idempotent(macro))
             for fn in extra_functions.functions or []:
-                self.conn.create_function(
+                self._register_udf_if_absent(
                     name=fn.name,
                     function=fn.function,
-                    parameters=fn.parameters,
+                    parameters=fn.parameters or [],
                     return_type=fn.return_type,
                 )
 
@@ -144,31 +163,42 @@ class DuckConnector:
         self.conn.close()
         logging.info("Closing connection...")
 
-    def __del__(self) -> None:
-        self.conn.close()
-        logging.info("Closing connection...")
-
     def __enter__(self) -> DuckConnector:
         return self
 
     def register_snowflake_functions(self) -> None:
+        # Macros use CREATE MACRO IF NOT EXISTS — already idempotent.
         self.execute(query=iff())
         self.execute(query=bitand())
-
         self.execute(query=array_size())
         self.execute(query=array_union_agg())
         self.execute(query=div0())
         self.execute(query=to_decimal())
         self.execute(query=current_timestamp())
+
+        # UDFs registered via conn.create_function are not idempotent — DuckDB raises
+        # NotImplementedException on duplicate registration. When DBT_DUCKDB_PATH stays
+        # stable across tests, DuckDB's process-wide DB cache remembers prior UDFs, so
+        # we must skip already-registered ones.
+        self._register_udf_if_absent("to_char", to_char, [DATE, VARCHAR], VARCHAR)
+        self._register_udf_if_absent("dateadd", date_add, [VARCHAR, INTEGER, DATE], DATE)
+
+    def _register_udf_if_absent(
+        self,
+        name: str,
+        function: Callable,
+        parameters: list[Any],
+        return_type: Any,
+    ) -> None:
+        existing = self.conn.execute(
+            "SELECT 1 FROM duckdb_functions() WHERE function_name = ? LIMIT 1",
+            [name],
+        ).fetchone()
+        if existing:
+            return
         self.conn.create_function(
-            name="to_char",
-            function=to_char,
-            parameters=[DATE, VARCHAR],
-            return_type=VARCHAR,
-        )
-        self.conn.create_function(
-            name="dateadd",
-            function=date_add,
-            parameters=[VARCHAR, INTEGER, DATE],
-            return_type=DATE,
+            name=name,
+            function=function,
+            parameters=parameters,
+            return_type=return_type,
         )

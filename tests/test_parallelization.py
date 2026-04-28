@@ -35,6 +35,27 @@ class TestPyDuckSettings:
         assert a.target_path != b.target_path
         assert a.log_path != b.log_path
 
+    def test_db_file_path_uses_artifacts_dir_when_set(self, tmp_path) -> None:
+        """When dbt_artifacts_dir is set (per-worker stable path), db_file_path lives there
+        — not in temp_dir. This is what makes DBT_DUCKDB_PATH stable across tests, which
+        in turn lets dbt's partial_parse cache survive between tests."""
+        artifacts = str(tmp_path / "worker_dbt")
+        settings = PyDuckSettings(temp_dir=str(tmp_path / "test"), dbt_artifacts_dir=artifacts)
+        assert settings.db_file_path.startswith(artifacts)
+
+    def test_target_and_log_paths_use_artifacts_dir_when_set(self, tmp_path) -> None:
+        artifacts = str(tmp_path / "worker_dbt")
+        settings = PyDuckSettings(temp_dir=str(tmp_path / "test"), dbt_artifacts_dir=artifacts)
+        assert settings.target_path == os.path.join(artifacts, "dbt_target")
+        assert settings.log_path == os.path.join(artifacts, "dbt_logs")
+
+    def test_two_settings_with_same_artifacts_dir_resolve_to_same_db_path(self, tmp_path) -> None:
+        artifacts = str(tmp_path / "worker_dbt")
+        a = PyDuckSettings(temp_dir=str(tmp_path / "test_a"), dbt_artifacts_dir=artifacts)
+        b = PyDuckSettings(temp_dir=str(tmp_path / "test_b"), dbt_artifacts_dir=artifacts)
+        assert a.db_file_path == b.db_file_path
+        assert a.target_path == b.target_path
+
 
 class TestDbtExecutorCommandConstruction:
     def _capture_invoke(self, executor: DbtExecutor, command: str = "build") -> list[str]:
@@ -141,3 +162,88 @@ class TestParseProjectMemoisation:
         _, calls_b = self._patched_parse(b)
         # Manifest is invariant w.r.t. target_path; target_path only affects on-disk artifacts.
         assert calls_b == 0
+
+
+class TestManifestCache:
+    """The manifest cache is what eliminates the per-invoke parse cost: after the first
+    `dbt parse` populates _MANIFEST_CACHE, every subsequent execute() call passes the
+    cached manifest into `dbtRunner(manifest=...)`, which lets dbt skip the parse step
+    entirely. This is the single biggest win: ~20s/invoke off `dbt build` and `dbt seed`."""
+
+    def _make_executor(self, **overrides: Any) -> DbtExecutor:
+        kwargs: dict[str, Any] = {"dbt_project_dir": "/proj", "profiles_dir": "/profiles"}
+        kwargs.update(overrides)
+        return DbtExecutor(**kwargs)
+
+    def _capture_runner_kwargs(self, executor: DbtExecutor, command: str = "build"):
+        """Run executor.execute and capture the kwargs passed to dbtRunner(...)."""
+        with patch.object(dbt_executor_module, "dbtRunner") as runner_cls:
+            runner = MagicMock()
+            runner_cls.return_value = runner
+            executor.execute(command=command)
+            return runner_cls.call_args.kwargs if runner_cls.call_args.kwargs else {}
+
+    def test_dbt_runner_is_constructed_without_manifest_when_cache_empty(self) -> None:
+        dbt_executor_module._MANIFEST_CACHE.clear()
+        executor = self._make_executor()
+        kwargs = self._capture_runner_kwargs(executor)
+        # Cold cache: dbtRunner called with no manifest, so dbt does its full parse.
+        assert kwargs.get("manifest") is None
+
+    def test_dbt_runner_receives_cached_manifest_after_parse(self) -> None:
+        dbt_executor_module._MANIFEST_CACHE.clear()
+        executor = self._make_executor()
+        sentinel_manifest = MagicMock(name="cached_manifest")
+        # Manually populate the cache the way parse_project would.
+        cache_key = (
+            executor.dbt_project_dir,
+            executor.profiles_dir,
+            "{}",
+        )
+        dbt_executor_module._MANIFEST_CACHE[cache_key] = sentinel_manifest
+
+        kwargs = self._capture_runner_kwargs(executor)
+        assert kwargs.get("manifest") is sentinel_manifest
+
+    def test_different_extra_vars_get_separate_manifests(self) -> None:
+        dbt_executor_module._MANIFEST_CACHE.clear()
+        m_a = MagicMock(name="manifest_a")
+        m_b = MagicMock(name="manifest_b")
+        a = self._make_executor(extra_vars={"x": 1})
+        b = self._make_executor(extra_vars={"x": 2})
+
+        import json as _json
+
+        dbt_executor_module._MANIFEST_CACHE[
+            (a.dbt_project_dir, a.profiles_dir, _json.dumps({"x": 1}, sort_keys=True, default=str))
+        ] = m_a
+        dbt_executor_module._MANIFEST_CACHE[
+            (b.dbt_project_dir, b.profiles_dir, _json.dumps({"x": 2}, sort_keys=True, default=str))
+        ] = m_b
+
+        assert self._capture_runner_kwargs(a).get("manifest") is m_a
+        assert self._capture_runner_kwargs(b).get("manifest") is m_b
+
+    def test_parse_project_populates_manifest_cache(self) -> None:
+        dbt_executor_module._MANIFEST_CACHE.clear()
+        executor = self._make_executor()
+
+        # Simulate dbt parse returning a result. parse_project should stash result.result
+        # in _MANIFEST_CACHE under the same key as _PARSE_CACHE.
+        sentinel_node = MagicMock()
+        sentinel_node.schema = "s"
+        sentinel_node.identifier = "t"
+        sentinel_node.columns = {"id": MagicMock()}
+
+        fake_result = MagicMock()
+        fake_result.result.sources.values.return_value = []
+        fake_result.result.nodes.values.return_value = [sentinel_node]
+
+        with patch.object(executor, "execute", return_value=fake_result) as mock_execute:
+            executor.parse_project()
+
+        cache_key = (executor.dbt_project_dir, executor.profiles_dir, "{}")
+        assert cache_key in dbt_executor_module._MANIFEST_CACHE
+        # The cached manifest is whatever dbtRunnerResult.result was — i.e. fake_result.result.
+        assert dbt_executor_module._MANIFEST_CACHE[cache_key] is fake_result.result
+        mock_execute.assert_called_once()
