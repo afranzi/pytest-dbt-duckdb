@@ -196,17 +196,27 @@ Use them as a starting point for writing your own end-to-end dbt model tests!
 ## :material-speedometer: Running tests in parallel
 
 !!! tip "Use pytest-xdist for fan-out"
-    The plugin isolates dbt artifacts per test by routing `--target-path` and `--log-path`
-    into the temporary directory owned by `duckdb_fixture`. As a result, you can safely
-    parallelise the suite with [`pytest-xdist`](https://pytest-xdist.readthedocs.io/).
+    The plugin keeps a single DuckDB file per xdist worker (stable `DBT_DUCKDB_PATH`),
+    resets state between tests by dropping user schemas, and caches the parsed dbt
+    `Manifest` per worker so every `dbt build`/`dbt seed` after the first skips the
+    parse step. Tune the worker count to your CI's CPU count — `-n 4` on a 4-vCPU
+    runner usually beats `-n auto`, since oversubscription costs more than it saves.
 
 ```shell
 pip install "pytest-dbt-duckdb[parallel]"   # pulls in pytest-xdist
-pytest -n auto
+pytest -n 4                                 # match your runner's vCPU count
 ```
 
-Each xdist worker is a separate process, so the in-memory manifest cache and the
-per-test DuckDB file are naturally isolated. No additional configuration is required.
+How isolation is split:
+
+- **Per test** — DuckDB content (every non-system schema is dropped between tests).
+- **Per xdist worker** — DuckDB file path, dbt `target/` and `logs/`, in-memory parsed
+  `Manifest` (`_MANIFEST_CACHE`) and column metadata (`_PARSE_CACHE`).
+
+Tradeoff: the first test on each worker pays a cold parse. Every subsequent test
+in that worker reuses the cached manifest. Round-robin scheduling (`pytest -n N`
+without `--dist loadfile`) gives every worker exactly one cold parse no matter how
+many tests it runs.
 
 ---
 

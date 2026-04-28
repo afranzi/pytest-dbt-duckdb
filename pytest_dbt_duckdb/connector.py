@@ -144,31 +144,42 @@ class DuckConnector:
         self.conn.close()
         logging.info("Closing connection...")
 
-    def __del__(self) -> None:
-        self.conn.close()
-        logging.info("Closing connection...")
-
     def __enter__(self) -> DuckConnector:
         return self
 
     def register_snowflake_functions(self) -> None:
+        # Macros use CREATE MACRO IF NOT EXISTS — already idempotent.
         self.execute(query=iff())
         self.execute(query=bitand())
-
         self.execute(query=array_size())
         self.execute(query=array_union_agg())
         self.execute(query=div0())
         self.execute(query=to_decimal())
         self.execute(query=current_timestamp())
+
+        # UDFs registered via conn.create_function are not idempotent — DuckDB raises
+        # NotImplementedException on duplicate registration. When DBT_DUCKDB_PATH stays
+        # stable across tests, DuckDB's process-wide DB cache remembers prior UDFs, so
+        # we must skip already-registered ones.
+        self._register_udf_if_absent("to_char", to_char, [DATE, VARCHAR], VARCHAR)
+        self._register_udf_if_absent("dateadd", date_add, [VARCHAR, INTEGER, DATE], DATE)
+
+    def _register_udf_if_absent(
+        self,
+        name: str,
+        function: Callable,
+        parameters: list[Any],
+        return_type: Any,
+    ) -> None:
+        existing = self.conn.execute(
+            "SELECT 1 FROM duckdb_functions() WHERE function_name = ? LIMIT 1",
+            [name],
+        ).fetchone()
+        if existing:
+            return
         self.conn.create_function(
-            name="to_char",
-            function=to_char,
-            parameters=[DATE, VARCHAR],
-            return_type=VARCHAR,
-        )
-        self.conn.create_function(
-            name="dateadd",
-            function=date_add,
-            parameters=[VARCHAR, INTEGER, DATE],
-            return_type=DATE,
+            name=name,
+            function=function,
+            parameters=parameters,
+            return_type=return_type,
         )
