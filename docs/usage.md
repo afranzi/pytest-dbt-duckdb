@@ -266,6 +266,53 @@ reflects the wall time inside `DbtValidator.validate` (sub-stages aren't double-
 
 ---
 
+## :material-tag-multiple: Passing Extra dbt CLI Flags (`extra_args`)
+
+!!! tip "Forward arbitrary flags to `dbt build` / `dbt seed`"
+    Use `extra_args` to pass any dbt CLI flag that is not otherwise exposed by the
+    fixture — for example, microbatch date windows with `--event-time-start` /
+    `--event-time-end`.
+
+**Option A — per-scenario in YAML:**
+
+```yaml title="test_tasks.yaml"
+tests:
+  - id: Validate microbatch window
+    given:
+      - schema: events
+        table: raw_events
+        path: 'e2e/given/raw_events.csv'
+    build: stg_cdc_events
+    extra_args:
+      - "--event-time-start"
+      - "2025-10-10"
+      - "--event-time-end"
+      - "2025-10-11"
+    then:
+      - schema: dbt_pytest_gummy
+        table: stg_cdc_events
+        path: 'e2e/then/stg_cdc_events.csv'
+```
+
+**Option B — per-call in Python:**
+
+```python title="test_dbt.py"
+duckdb_fixture.execute_dbt(
+    nodes_to_load=fixture.given,
+    build=fixture.build,
+    nodes_to_validate=fixture.then,
+    resources_folder="tests/data",
+    dbt_project_dir=".",
+    extra_args=["--event-time-start", "2025-10-10", "--event-time-end", "2025-10-11"],
+)
+```
+
+The flags are appended verbatim after `--select <selector>` in every `dbt build`
+and `dbt seed` invocation. When `extra_args` is omitted or `None`, behaviour is
+identical to previous versions.
+
+---
+
 ## :octicons-light-bulb-24: Summary
 - Define input data (given), models to build (build), and expected outputs (then).
 - Configure dbt using profiles.yml and environment variables.
