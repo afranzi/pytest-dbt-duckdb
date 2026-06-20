@@ -59,6 +59,7 @@ guiding you toward precision and reliability**.
 | ♻️ **CI/CD Ready**       | Seamless integration with GitHub Actions, Jenkins, GitLab CI/CD. |
 | 🔌 **Custom Functions**  | Extend with user-defined DuckDB functions.                       |
 | 🧪 **Snapshot Testing**  | Compare actual vs. expected outputs with precision.              |
+| 🏷️ **Extra dbt Args**   | Pass arbitrary dbt CLI flags (e.g. microbatch date windows) to both `dbt seed` and `dbt build`, per scenario. |
 
 ---
 
