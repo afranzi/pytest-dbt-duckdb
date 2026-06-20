@@ -15,4 +15,5 @@ def test_dbt_scenarios(fixture: TestFixture, duckdb_fixture: DuckFixture) -> Non
         nodes_to_validate=fixture.then,
         resources_folder=resources_folder,
         dbt_project_dir=dbt_project_dir,
+        extra_args=fixture.extra_args,
     )

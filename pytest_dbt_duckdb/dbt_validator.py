@@ -87,16 +87,23 @@ class DbtValidator:
         for node in nodes:
             self.dbt_load_node(node)
 
-    def execute_dbt(self, seed: str | None = None, build: str | None = None, quiet: bool = True) -> None:
+    def execute_dbt(
+        self,
+        seed: str | None = None,
+        build: str | None = None,
+        quiet: bool = True,
+        extra_args: list[str] | None = None,
+    ) -> None:
         quiet_param = "-q" if quiet else ""
+        extra_args = extra_args or []
 
         assert seed is not None or build is not None, "seed or build must be defined"
 
         if seed:
-            seeds_res = self.executor.execute(command="seed", params=["--select", seed, quiet_param])
+            seeds_res = self.executor.execute(command="seed", params=["--select", seed, quiet_param, *extra_args])
             self.executor.validate_execution(seeds_res)
         if build:
-            build_res = self.executor.execute(command="build", params=["--select", build, quiet_param])
+            build_res = self.executor.execute(command="build", params=["--select", build, quiet_param, *extra_args])
             self.executor.validate_execution(build_res)
 
     @staticmethod
