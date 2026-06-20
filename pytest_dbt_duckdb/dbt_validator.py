@@ -154,7 +154,9 @@ class DbtValidator:
         nodes_to_validate: list[DbtTestNode],
         seed: str | None = None,
         build: str | list[str] | None = None,
+        extra_args: list[str] | None = None,
     ) -> None:
+        extra_args = extra_args or []
         # STEP 1: Populate Source Tables with CSV/JSON files
         with profiler.record("load_given"):
             self.dbt_load_nodes(nodes=nodes_to_load)
@@ -164,11 +166,11 @@ class DbtValidator:
             build = " ".join(build)
         if seed:
             with profiler.record("dbt_seed"):
-                seeds_res = self.executor.execute(command="seed", params=["--select", seed])
+                seeds_res = self.executor.execute(command="seed", params=["--select", seed, *extra_args])
                 self.executor.validate_execution(seeds_res)
         if build:
             with profiler.record("dbt_build"):
-                build_res = self.executor.execute(command="build", params=["--select", str(build)])
+                build_res = self.executor.execute(command="build", params=["--select", str(build), *extra_args])
                 self.executor.validate_execution(build_res)
 
         # STEP 3: Validate Output Tables versus CSV files

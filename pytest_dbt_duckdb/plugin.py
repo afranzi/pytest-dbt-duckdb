@@ -23,6 +23,7 @@ class TestFixture(BaseModel):
     build: str | list[str] | None = None
     seed: str | None = None
     then: list[DbtTestNode]
+    extra_args: list[str] | None = None
 
 
 class PyDuckSettings(BaseSettings):
@@ -72,6 +73,7 @@ class DuckFixture(BaseModel):
         build: str | list[str] | None = None,
         extra_functions: ExtraFunctions | None = None,
         extra_vars: dict | None = None,
+        extra_args: list[str] | None = None,
     ) -> None:
         connector = DuckConnector(conn=self.conn, extra_functions=extra_functions)
         os.environ["DBT_DUCKDB_PATH"] = self.settings.db_file_path
@@ -90,7 +92,13 @@ class DuckFixture(BaseModel):
             resources_folder=resources_folder,
             debug_output=self.settings.debug_output,
         )
-        validator.validate(nodes_to_load=nodes_to_load, nodes_to_validate=nodes_to_validate, seed=seed, build=build)
+        validator.validate(
+            nodes_to_load=nodes_to_load,
+            nodes_to_validate=nodes_to_validate,
+            seed=seed,
+            build=build,
+            extra_args=extra_args,
+        )
 
 
 def load_yaml_test(file_path: str, yaml: YAML = YAML(typ="safe", pure=True)) -> Iterable[TestFixture]:
