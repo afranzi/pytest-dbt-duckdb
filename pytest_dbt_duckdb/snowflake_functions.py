@@ -66,8 +66,11 @@ def array_union_agg() -> str:
 
 
 def to_decimal() -> str:
+    # `precision` became a reserved keyword in the DuckDB 1.5 parser, so it must be
+    # quoted. Kept as-is (rather than renamed) to match Snowflake's documented
+    # TO_DECIMAL(expr, precision, scale) signature. Both args are ignored by the body.
     return """
-        CREATE MACRO IF NOT EXISTS to_decimal(expr, precision, scale) AS (
+        CREATE MACRO IF NOT EXISTS to_decimal(expr, "precision", scale) AS (
             CAST(expr as DECIMAL(12,5))
         );
     """
