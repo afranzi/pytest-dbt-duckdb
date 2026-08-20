@@ -9,11 +9,12 @@ A second `register_snowflake_functions` would raise without idempotency.
 from __future__ import annotations
 
 import tempfile
+from decimal import Decimal
 from pathlib import Path
 
 import duckdb
 import pytest
-from duckdb.typing import INTEGER
+from duckdb.sqltypes import INTEGER
 
 from pytest_dbt_duckdb.connector import DuckConnector, DuckFunction, ExtraFunctions
 from pytest_dbt_duckdb.plugin import reset_user_schemas
@@ -170,5 +171,58 @@ class TestExtraFunctionsIdempotency:
         try:
             DuckConnector(conn=conn, extra_functions=ExtraFunctions(macros=macros))
             assert conn.execute("SELECT already_replace(1)").fetchone() == (101,)
+        finally:
+            conn.close()
+
+
+class TestDuckDbApiCompat:
+    """Regression cover for DuckDB API/parser behaviour the plugin depends on.
+
+    Each assertion here corresponds to something that broke silently on the
+    DuckDB 1.2 -> 1.5 upgrade and only surfaced via the e2e scenarios.
+    """
+
+    def test_to_decimal_macro_is_callable(self, db_path) -> None:
+        """`precision` became a reserved keyword in the DuckDB 1.5 parser, so the
+        to_decimal macro must quote it. Registration alone catches the parse error;
+        calling it catches an accidental change to the argument order/arity."""
+        conn = duckdb.connect(db_path)
+        try:
+            DuckConnector(conn=conn, extra_functions=None)
+            assert conn.execute("SELECT to_decimal(3.14159265, 12, 5)").fetchone() == (Decimal("3.14159"),)
+        finally:
+            conn.close()
+
+    def test_get_table_columns_returns_column_names(self, db_path) -> None:
+        """Guards the arrow-table conversion: DuckDB 1.5 made `.arrow()` return a
+        streaming RecordBatchReader, which has no `to_pydict`."""
+        conn = duckdb.connect(db_path)
+        try:
+            connector = DuckConnector(conn=conn, extra_functions=None)
+            conn.execute("CREATE TABLE t (a INTEGER, b VARCHAR, c DATE)")
+            assert connector.get_table_columns("t") == ["a", "b", "c"]
+        finally:
+            conn.close()
+
+    def test_fetch_data_returns_list_of_dicts(self, db_path) -> None:
+        """Same arrow-conversion guard as above, for the `to_pylist` path."""
+        conn = duckdb.connect(db_path)
+        try:
+            connector = DuckConnector(conn=conn, extra_functions=None)
+            conn.execute("CREATE TABLE t AS SELECT 1 AS a, 'x' AS b")
+            assert connector.fetch_data("SELECT a, b FROM t") == [{"a": 1, "b": "x"}]
+        finally:
+            conn.close()
+
+    def test_list_column_with_apostrophe_round_trips(self, db_path) -> None:
+        """DuckDB 1.5 stopped accepting apostrophes inside *unquoted* list elements
+        when casting VARCHAR -> LIST. Fixture CSVs must quote such elements, so
+        confirm the quoted form still decodes to the bare value."""
+        conn = duckdb.connect(db_path)
+        try:
+            assert conn.execute("""SELECT CAST('["Vincent D''Onofrio", Will Smith]' AS VARCHAR[])""").fetchone()[0] == [
+                "Vincent D'Onofrio",
+                "Will Smith",
+            ]
         finally:
             conn.close()

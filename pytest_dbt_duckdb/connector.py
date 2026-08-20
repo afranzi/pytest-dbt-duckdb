@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from absl import logging
 from duckdb import DuckDBPyConnection
-from duckdb.typing import DATE, INTEGER, VARCHAR, DuckDBPyType
+from duckdb.sqltypes import DATE, INTEGER, VARCHAR, DuckDBPyType
 from pydantic import BaseModel, ConfigDict
 
 from pytest_dbt_duckdb.snowflake_functions import (
@@ -109,7 +109,7 @@ class DuckConnector:
             raise RuntimeError(f"File {data_path} not supported")
 
     def fetch_data(self, query: str, parameters: dict[str, Any] | None = None) -> list[dict]:
-        return self.execute(query, parameters=parameters).arrow().to_pylist()
+        return self.execute(query, parameters=parameters).to_arrow_table().to_pylist()
 
     @staticmethod
     def sort_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -137,7 +137,7 @@ class DuckConnector:
         return self.fetch_sorted_df(f"SHOW {schema}.{table}")
 
     def get_table_columns(self, table: str) -> list[str]:
-        columns = self.execute(f"SELECT name FROM pragma_table_info('{table}')").arrow().to_pydict()["name"]
+        columns = self.execute(f"SELECT name FROM pragma_table_info('{table}')").to_arrow_table().to_pydict()["name"]
         return columns
 
     def create_tmp_table(self, table: str, data_path: str) -> DuckDBPyConnection:
