@@ -220,9 +220,7 @@ class TestDuckDbApiCompat:
         confirm the quoted form still decodes to the bare value."""
         conn = duckdb.connect(db_path)
         try:
-            assert conn.execute("""SELECT CAST('["Vincent D''Onofrio", Will Smith]' AS VARCHAR[])""").fetchone()[0] == [
-                "Vincent D'Onofrio",
-                "Will Smith",
-            ]
+            result = conn.execute("""SELECT CAST('["Vincent D''Onofrio", Will Smith]' AS VARCHAR[])""").fetchone()
+            assert result == (["Vincent D'Onofrio", "Will Smith"],)
         finally:
             conn.close()
