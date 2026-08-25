@@ -57,8 +57,11 @@ class DbtExecutor:
         cached_manifest = _MANIFEST_CACHE.get(self._cache_key())
         dbt = dbtRunner(manifest=cached_manifest) if cached_manifest is not None else dbtRunner()
         params = params or []
-        extra_vars = [json.dumps({key: value}) for key, value in self.extra_vars.items()]
-        extra_vars = [x for val in extra_vars for x in ("--vars", val)]
+        # dbt's --vars is a single-value option (no `multiple=True`), so click keeps only
+        # the LAST occurrence and silently discards the rest. Emitting one flag per variable
+        # therefore dropped every var but the last -- including elementary_enabled below.
+        # Merge into one dict so all of them survive; caller vars win on key collision.
+        merged_vars = {"elementary_enabled": False, **self.extra_vars}
 
         invoke_command: list[str] = []
         if self.log_path:
@@ -71,8 +74,8 @@ class DbtExecutor:
             "--profiles-dir",
             self.profiles_dir,
             "--vars",
-            json.dumps({"elementary_enabled": False}),
-        ] + extra_vars
+            json.dumps(merged_vars),
+        ]
 
         if self.target_path:
             invoke_command += ["--target-path", self.target_path]
